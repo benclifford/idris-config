@@ -115,7 +115,27 @@ jsonTest3 = parseTest "JSON Test 3"
     }
     """
 
+-- QUESTION/DISCUSSION When is this \ being unescaped?
+jsonTest4 : TestReport
+jsonTest4 = parseTest "JSON Test 4"
+                      parseJSONFile
+                      """{
+    "newline" : "\n",
+    "unicode" : "\u0041",
+    "escaped double quote" : "\""
+    }
+    """
+
+jsonTest5 : TestReport
+jsonTest5 = parseTestNot "JSON Test 5"
+                         parseJSONFile
+                         """{
+    "invalid" : "\q"
+    }
+    """
+
 runTests : IO ()
-runTests = Testing.runTests [jsonTest1, jsonTest2, jsonTest3]
+runTests = Testing.runTests [jsonTest1, jsonTest2, jsonTest3,
+                             jsonTest4, jsonTest5]
 
 -- --------------------------------------------------------------------- [ EOF ]

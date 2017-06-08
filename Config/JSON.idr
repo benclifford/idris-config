@@ -55,16 +55,35 @@ Show JsonValue where
 -- character.
 
 
+hexToInt : Char -> Int
+hexToInt '0' = 0
+hexToInt '1' = 1
+hexToInt '2' = 2
+hexToInt '3' = 3
+hexToInt '4' = 4
+hexToInt '5' = 5
+hexToInt '6' = 6
+hexToInt '7' = 7
+hexToInt '8' = 8
+hexToInt '9' = 9
+hexToInt 'A' = 10
+hexToInt 'B' = 11
+hexToInt 'C' = 12
+hexToInt 'D' = 13
+hexToInt 'E' = 14
+hexToInt 'F' = 15
+
+
 -- TODO but at least we skip past it in parsing and replace it with
 -- something unknown. which will be OK for now if it is only used
 -- in strings we don't care about...
 unicodeHexchar : Monad m => ParserT String m Char
 unicodeHexchar = do
-  anyChar
-  anyChar
-  anyChar
-  anyChar
-  pure 'X'
+  d1 <- hexToInt <$> hexDigit
+  d2 <- hexToInt <$> hexDigit
+  d3 <- hexToInt <$> hexDigit
+  d4 <- hexToInt <$> hexDigit
+  pure $ cast $ d1 * 16 * 16 * 16 + d2 * 16 * 16 + d3 * 16 + d4
 
 -- this list is non-exhaustive: it is the escapes that I've come
 -- across in data I've tried to parse.
