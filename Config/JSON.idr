@@ -85,21 +85,25 @@ unicodeHexchar = do
 
 -- this list is non-exhaustive: it is the escapes that I've come
 -- across in data I've tried to parse.
-xxescapedchars : Monad m => ParserT String m Char
-xxescapedchars = (char '"' *> pure '"')
-             <|> (char 'n' *> pure '\n')
-             <|> (char 'u' *> unicodeHexchar)
-             <|> do { c <- anyChar ; fail $ "Unexpected string escape character: " ++ show c }
+escapedChar : Monad m => ParserT String m Char
+escapedChar = (char '"' *> pure '"')
+          <|> (char 'n' *> pure '\n')
+          <|> (char 'u' *> unicodeHexchar)
+          <|> do
+                c <- anyChar
+                fail $ "Unexpected string escape character: " ++ show c
 
 
 -- QUESTION/DISCUSSION: why is this type not Parser Char?
 -- what does Parser Char expand to (if anything?)
 -- I think Parser forces the m to be identity but 'some'
 -- wants it to be polymorphic in m?
-xxstringchar : Monad m => ParserT String m Char
-xxstringchar = ((satisfy $ \c => (c /= '"') && ( c /= '\\')) <?> "unescaped string character")
-           <|> (char '\\' >! (xxescapedchars <?> "string escape selector(?phrasing)"))
-           <?> "valid string character"
+possiblyEscapedChar : Monad m => ParserT String m Char
+possiblyEscapedChar =
+        ((satisfy normalChar) <?> "unescaped string character")
+    <|> (char '\\' >! escapedChar)
+    <?> "possibly escaped character"
+  where normalChar c = (c /= '"') && ( c /= '\\')
 
 -- QUESTION/DISCUSSION does that >! after the \\ cause
 -- better error messages by stopping backtracking once
@@ -111,21 +115,17 @@ xxstringchar = ((satisfy $ \c => (c /= '"') && ( c /= '\\')) <?> "unescaped stri
 -- rather than so much backtracking happening?
 
 
-||| Collect the literal string contained between two characters
-xxquoted' : Monad m => Char -> Char -> ParserT String m String
-xxquoted' l r = map pack $ between (char l) (lexeme $ char r) (many xxstringchar)
+||| Collect the literal string contained between quotes
+escapedString : Monad m => ParserT String m String
+escapedString = map pack $ between (char '"') (lexeme $ char '"') (many possiblyEscapedChar)
 -- this 'many' is changed from 'some' in the library version of `quoted'`
 -- so as to accept null strings
 -- It would be good if we were strict on the left hand char, because
 -- JSON doesn't need backtracking here and we could focus errors
 -- a bit more?
 
-||| Literal string between two identical characters
-xxquoted : Monad m => Char -> ParserT String m String
-xxquoted c = xxquoted' c c
-
 jsonString : Parser String
-jsonString = xxquoted '"' <?> "JSON String XXXquoted"
+jsonString = escapedString <?> "JSON String"
 
 jsonNumber : Parser Double
 jsonNumber = map scientificToFloat parseScientific <?> "JSON Number"
@@ -150,37 +150,6 @@ mutual
         value <- jsonValue
         pure (key, value)
     <?> "JSON KV Pair"
-
--- this commitTo changes from this:
--- (in the case that there's an empty string, 1:12331 is "key":"")
--- at a time when this parser can't accept empty strings
-{-
-at 1:83 expected:
-  JSON Object
-at 1:12331 expected:
-  token "}"
-at 1:12331 expected:
-  string "}"
-at 1:12331 expected:
-  character '}'
-at 1:12331 expected:
-  a different token
--}
--- to
-{-
-at 1:83 expected:
-  JSON Object
-at 1:12333 expected:
-  JSON KV Pair
-at 1:12346 expected:
-  JSON Value
-... followed by a bazillion lines of
-    trying to parse a valid JSON value
--}
--- which is arguably better because it makes
--- further progress and gives the error closer
--- to where the error happened?
-
 
   jsonObject : Parser (Dict String JsonValue)
   jsonObject = map fromList $ braces (commaSep (keyValuePair)) <?> "JSON Object"
