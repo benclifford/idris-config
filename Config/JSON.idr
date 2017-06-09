@@ -79,10 +79,10 @@ hexToInt 'F' = 15
 -- in strings we don't care about...
 unicodeHexchar : Monad m => ParserT String m Char
 unicodeHexchar = do
-  d1 <- hexToInt <$> hexDigit
-  d2 <- hexToInt <$> hexDigit
-  d3 <- hexToInt <$> hexDigit
-  d4 <- hexToInt <$> hexDigit
+  d1 <- (hexToInt . toUpper) <$> hexDigit
+  d2 <- (hexToInt . toUpper) <$> hexDigit
+  d3 <- (hexToInt . toUpper) <$> hexDigit
+  d4 <- (hexToInt . toUpper) <$> hexDigit
   pure $ cast $ d1 * 16 * 16 * 16 + d2 * 16 * 16 + d3 * 16 + d4
 
 -- this list is non-exhaustive: it is the escapes that I've come
