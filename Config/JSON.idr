@@ -75,9 +75,6 @@ hexToInt 'F' = 15
 hexInt : Monad m => ParserT String m Int
 hexInt = (hexToInt . toUpper) <$> hexDigit
 
--- TODO but at least we skip past it in parsing and replace it with
--- something unknown. which will be OK for now if it is only used
--- in strings we don't care about...
 unicodeHexchar : Monad m => ParserT String m Char
 unicodeHexchar = do
   d1 <- hexInt
