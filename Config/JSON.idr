@@ -54,7 +54,6 @@ Show JsonValue where
 -- but doesn't use that same parser to recognise the end
 -- character.
 
-
 hexToInt : Char -> Int
 hexToInt '0' = 0
 hexToInt '1' = 1
@@ -73,16 +72,18 @@ hexToInt 'D' = 13
 hexToInt 'E' = 14
 hexToInt 'F' = 15
 
+hexInt : Monad m => ParserT String m Int
+hexInt = (hexToInt . toUpper) <$> hexDigit
 
 -- TODO but at least we skip past it in parsing and replace it with
 -- something unknown. which will be OK for now if it is only used
 -- in strings we don't care about...
 unicodeHexchar : Monad m => ParserT String m Char
 unicodeHexchar = do
-  d1 <- (hexToInt . toUpper) <$> hexDigit
-  d2 <- (hexToInt . toUpper) <$> hexDigit
-  d3 <- (hexToInt . toUpper) <$> hexDigit
-  d4 <- (hexToInt . toUpper) <$> hexDigit
+  d1 <- hexInt
+  d2 <- hexInt
+  d3 <- hexInt
+  d4 <- hexInt
   pure $ cast $ d1 * 16 * 16 * 16 + d2 * 16 * 16 + d3 * 16 + d4
 
 -- this list is non-exhaustive: it is the escapes that I've come
